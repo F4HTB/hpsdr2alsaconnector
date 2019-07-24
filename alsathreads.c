@@ -161,14 +161,19 @@ void* alsapbth(void *input)
                 ((struct thargs*)input)->state=2;
         }
 
+
+        fprintf (stdout,"start play th %i on %s with samplerate %i\n", index, adrx,samplerate);
+
         while(!((struct thargs*)input)->stopth) {
-                if ((err = snd_pcm_writei (playback_handle, ((struct thargs*)input)->output_items+(RxWriteCounterth* SamplesPerRx * 2), SamplesPerRx)) != SamplesPerRx) {
+          if(((struct thargs*)input)->RxWriteCounter != RxWriteCounterth) {
+                if ((err = snd_pcm_writei (playback_handle, ((struct thargs*)input)->output_items+(RxWriteCounterth * SamplesPerRx * 2), SamplesPerRx)) != SamplesPerRx) {
+                        snd_pcm_recover(playback_handle, err, 0);
                         fprintf (stderr, "write to audio interface failed (%s)\n",
                                  snd_strerror (err));
                 }
-                if(((struct thargs*)input)->RxWriteCounter != RxWriteCounterth) {
+
                         RxWriteCounterth++; if(RxWriteCounterth > ((struct thargs*)input)->buffersize) RxWriteCounterth=0;
-                }//else{fprintf (stdout, "underrun\n");}
+                }else{usleep(waittotimeperframe/10);}
 
         }
 

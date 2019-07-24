@@ -68,9 +68,9 @@ struct hpsdrinfos
 
 
 void prexample(char *argv[]){
-  fprintf (stderr,"\033[0;32m");
-  fprintf (stderr,"%s --interface=wlo1 --samplerate=48000 --adrx1=plughw:CARD=PCH,DEV=0 --frx1=14074000 --adrx2=plughw:CARD=loopTest1,DEV=0 --frx2=7200000 --nRX=2\n",argv[0]);
-  fprintf (stderr,"\033[0m");
+        fprintf (stderr,"\033[0;32m");
+        fprintf (stderr,"%s --interface=wlo1 --samplerate=48000 --adrx1=plughw:CARD=PCH,DEV=0 --frx1=14074000 --adrx2=plughw:CARD=loopTest1,DEV=0 --frx2=7200000 --nRX=2\n",argv[0]);
+        fprintf (stderr,"\033[0m");
 }
 
 int main(int argc, char *argv[])
@@ -148,12 +148,12 @@ int main(int argc, char *argv[])
                 printf("\n");
         }
 
-        if(hpsdroptions.nRX==0){
-          fprintf (stderr,"\033[1;31m");
-          fprintf (stderr, "please give the number of receivers --nRX=\n");
-          fprintf (stderr,"\033[0m");
-          prexample(argv);
-          exit(1);
+        if(hpsdroptions.nRX==0) {
+                fprintf (stderr,"\033[1;31m");
+                fprintf (stderr, "please give the number of receivers --nRX=\n");
+                fprintf (stderr,"\033[0m");
+                prexample(argv);
+                exit(1);
         }
 
         for(int i=1; i<=hpsdroptions.nRX; i++) {
@@ -183,6 +183,13 @@ int main(int argc, char *argv[])
         struct thargs *argvvv[NumRx];
         //short *output_items[NumRx][SamplesPerRx][2];
 
+        pthread_attr_t attr;
+        struct sched_param param;
+        pthread_attr_init (&attr);
+        pthread_attr_getschedparam (&attr, &param);
+        (param.sched_priority)++;
+        pthread_attr_setschedparam (&attr, &param);
+
         for(int i=1; i<=NumRx; i++) {
                 argvvv[i] = (struct thargs *)malloc(sizeof(struct thargs));
                 argvvv[i]->index = i;
@@ -190,11 +197,12 @@ int main(int argc, char *argv[])
                 argvvv[i]->samplerate = (unsigned int)hpsdroptions.samplerate;
                 argvvv[i]->SamplesPerRx = SamplesPerRx;
                 argvvv[i]->output_items = (short *) malloc (hpsdroptions.buffersize * sizeof(short) * SamplesPerRx * 2);
+                memset(argvvv[i]->output_items, 0, hpsdroptions.buffersize * sizeof(short) * SamplesPerRx * 2);
                 argvvv[i]->buffersize = hpsdroptions.buffersize;
                 argvvv[i]->stopth = false;
                 argvvv[i]->RxWriteCounter=0;
                 argvvv[i]->state=1;
-                pthread_create(&alsadeviceth[i],NULL,&alsapbth,(void*)argvvv[i]);
+                pthread_create(&alsadeviceth[i],&attr,&alsapbth,(void*)argvvv[i]);
         }
 
         for(int i=1; i<=NumRx; i++) {
@@ -220,9 +228,6 @@ int main(int argc, char *argv[])
         fprintf (stderr,"\033[0m");
 
         while(!kbhit()) {
-
-
-
                 if( (Rx = Hermes->GetRxIQ()) != NULL) {
                         for (int index=0; index<SamplesPerRx; index++)
                                 for (int receiver=0; receiver < NumRx; receiver++) {
@@ -234,7 +239,7 @@ int main(int argc, char *argv[])
                                 argvvv[i]->RxWriteCounter = RxWriteCounter;
                         }
                         RxWriteCounter++; if(RxWriteCounter > hpsdroptions.buffersize) RxWriteCounter=0;
-                }else{usleep(waittotimeperframe);}
+                }else{usleep(waittotimeperframe/10);}
         }
         Hermes->End();
 
