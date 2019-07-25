@@ -156,7 +156,7 @@ int main(int argc, char *argv[])
                 exit(1);
         }
 
-        for(int i=1; i<=hpsdroptions.nRX; i++) {
+        for(int i=1; i<=hpsdroptions.nRX; ++i) {
                 if(hpsdroptions.adrx[i] == NULL || hpsdroptions.frx[i] == -1) {
                         fprintf (stderr,"\033[1;31m");
                         fprintf (stderr, "rx%d not initialized, miss frequency or alsa device\n",i);
@@ -190,7 +190,7 @@ int main(int argc, char *argv[])
         (param.sched_priority)++;
         pthread_attr_setschedparam (&attr, &param);
 
-        for(int i=1; i<=NumRx; i++) {
+        for(int i=1; i<=NumRx; ++i) {
                 argvvv[i] = (struct thargs *)malloc(sizeof(struct thargs));
                 argvvv[i]->index = i;
                 argvvv[i]->adrx = hpsdroptions.adrx[i];
@@ -205,7 +205,7 @@ int main(int argc, char *argv[])
                 pthread_create(&alsadeviceth[i],&attr,&alsapbth,(void*)argvvv[i]);
         }
 
-        for(int i=1; i<=NumRx; i++) {
+        for(int i=1; i<=NumRx; ++i) {
                 while(argvvv[i]->state==1) usleep(5);
                 if(argvvv[i]->state == -1) {
                         Hermes->End();
@@ -229,21 +229,21 @@ int main(int argc, char *argv[])
 
         while(!kbhit()) {
                 if( (Rx = Hermes->GetRxIQ()) != NULL) {
-                        for (int index=0; index<SamplesPerRx; index++)
-                                for (int receiver=0; receiver < NumRx; receiver++) {
+                        for (int index=0; index<SamplesPerRx; ++index)
+                                for (int receiver=0; receiver < NumRx; ++receiver) {
                                         int indexotp = index*2+(RxWriteCounter* SamplesPerRx * 2);
                                         argvvv[receiver+1]->output_items[indexotp]= *Rx++;
                                         argvvv[receiver+1]->output_items[indexotp+1]= *Rx++;
                                 }
-                        for(int i=1; i<=NumRx; i++) {
+                        for(int i=1; i<=NumRx; ++i) {
                                 argvvv[i]->RxWriteCounter = RxWriteCounter;
                         }
-                        RxWriteCounter++; if(RxWriteCounter > hpsdroptions.buffersize) RxWriteCounter=0;
+                        ++RxWriteCounter; if(RxWriteCounter > hpsdroptions.buffersize) RxWriteCounter=0;
                 }else{usleep(waittotimeperframe/10);}
         }
         Hermes->End();
 
-        for(int i=1; i<=NumRx; i++) {
+        for(int i=1; i<=NumRx; ++i) {
                 argvvv[i]->stopth = 1;
         }
 

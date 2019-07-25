@@ -172,7 +172,7 @@ void* alsapbth(void *input)
                                  snd_strerror (err));
                 }
 
-                        RxWriteCounterth++; if(RxWriteCounterth > ((struct thargs*)input)->buffersize) RxWriteCounterth=0;
+                        ++RxWriteCounterth; if(RxWriteCounterth > ((struct thargs*)input)->buffersize) RxWriteCounterth=0;
                 }else{usleep(waittotimeperframe/10);}
 
         }
