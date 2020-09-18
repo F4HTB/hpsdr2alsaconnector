@@ -55,6 +55,7 @@ void* alsapbth(void *input)
         int index = ((struct thargs*)input)->index;
         char *adrx = ((struct thargs*)input)->adrx;
         unsigned int samplerate = ((struct thargs*)input)->samplerate;
+		unsigned int alsabuffersize = ((struct thargs*)input)->alsabuffersize;
         int SamplesPerRx = ((struct thargs*)input)->SamplesPerRx;
         unsigned RxWriteCounterth=((struct thargs*)input)->RxWriteCounter;
         fprintf (stdout,"new th %i on %s with samplerate %i\n", index, adrx,samplerate);
@@ -127,6 +128,22 @@ void* alsapbth(void *input)
                 pthread_exit( NULL );
         }
 
+		snd_pcm_uframes_t frames = samplerate / 100;
+        if ((err = snd_pcm_hw_params_set_period_size_near (playback_handle, hw_params, &frames, 0)) < 0) {
+                fprintf (stderr,"\033[1;31m");
+                fprintf (stderr, "rx%d cannot set period size %s (%s)\n",index,adrx,snd_strerror (err));
+                fprintf (stderr,"\033[0m");
+                ((struct thargs*)input)->state=-1;
+                pthread_exit( NULL );
+        }
+		
+        if ((err = snd_pcm_hw_params_set_rate_near (playback_handle, hw_params, &alsabuffersize, 0)) < 0) {
+                fprintf (stderr,"\033[1;31m");
+                fprintf (stderr, "rx%d cannot set buf size %s (%s)\n",index,adrx,snd_strerror (err));
+                fprintf (stderr,"\033[0m");
+                ((struct thargs*)input)->state=-1;
+                pthread_exit( NULL );
+        }
 
         if ((err = snd_pcm_hw_params_set_channels (playback_handle, hw_params, 2)) < 0) {
                 fprintf (stderr,"\033[1;31m");
@@ -156,7 +173,7 @@ void* alsapbth(void *input)
                 pthread_exit( NULL );
         }
 
-        while((int)((struct thargs*)input)->RxWriteCounter < (int)(RxWriteCounterth+(((struct thargs*)input)->buffersize/2))) {
+        while((int)((struct thargs*)input)->RxWriteCounter < (int)(RxWriteCounterth+(((struct thargs*)input)->hermesbuffersize/2))) {
                 usleep(waittotimeperframe);
                 ((struct thargs*)input)->state=2;
         }
@@ -172,7 +189,7 @@ void* alsapbth(void *input)
                                  snd_strerror (err));
                 }
 
-                        ++RxWriteCounterth; if(RxWriteCounterth > ((struct thargs*)input)->buffersize) RxWriteCounterth=0;
+                        ++RxWriteCounterth; if(RxWriteCounterth > ((struct thargs*)input)->hermesbuffersize) RxWriteCounterth=0;
                 }else{usleep(waittotimeperframe/10);}
 
         }

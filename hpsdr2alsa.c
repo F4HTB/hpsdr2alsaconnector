@@ -63,14 +63,22 @@ struct hpsdrinfos
         int samplerate=48000;
         char *hpsdrMAC=(char *)"*";
         char *interface=(char *)"eth0";
-        unsigned buffersize=4096;
+        unsigned int hermesbuffersize=4096;
+		unsigned int alsabuffersize=128*1024;
 } hpsdroptions;
 
 
 void prexample(char *argv[]){
         fprintf (stderr,"\033[0;32m");
         fprintf (stderr,"%s --interface=wlo1 --samplerate=48000 --adrx1=plughw:CARD=PCH,DEV=0 --frx1=14074000 --adrx2=plughw:CARD=loopTest1,DEV=0 --frx2=7200000 --nRX=2\n",argv[0]);
-        fprintf (stderr,"\033[0m");
+        fprintf (stderr,"--interface is the network interface where is your receiver connected.");
+		fprintf (stderr,"--samplerate is the general sample rate of your receiver.Default is %u.", hpsdroptions.samplerate);
+		fprintf (stderr,"--adrx1 is the ouput alsa sound device for rx1, adrx2 for rx2 etc...");
+		fprintf (stderr,"--frx1 is the frequency to set for adrx1 in hz, frx2 for adrx2, etc...");
+		fprintf (stderr,"--nRX is your rx count, if you use 2 receiver set to 2.");
+		fprintf (stderr,"--hermesbuffersize is the hermes buffer size. Default is %u.", hpsdroptions.hermesbuffersize);
+		fprintf (stderr,"--alsabuffersize is the alsa output buffer size. Default is %u.", hpsdroptions.alsabuffersize);
+		fprintf (stderr,"\033[0m");
 }
 
 int main(int argc, char *argv[])
@@ -95,7 +103,8 @@ int main(int argc, char *argv[])
                 {"samplerate",required_argument,0,0},
                 {"hpsdrMAC",required_argument,0,0},
                 {"interface",required_argument,0,0},
-                {"buffersize",required_argument,0,0},
+                {"hermesbuffersize",required_argument,0,0},
+				{"alsabuffersize",required_argument,0,0},
                 {0,0,0,0}
         };
 
@@ -120,7 +129,8 @@ int main(int argc, char *argv[])
                                 else if(strcmp(long_options[option_index].name, "samplerate")==0) {hpsdroptions.samplerate=atoi(optarg);}
                                 else if(strcmp(long_options[option_index].name, "hpsdrMAC")==0) {hpsdroptions.hpsdrMAC=optarg;}
                                 else if(strcmp(long_options[option_index].name, "interface")==0) {hpsdroptions.interface=optarg;}
-                                else if(strcmp(long_options[option_index].name, "buffersize")==0) {hpsdroptions.buffersize=atoi(optarg);}
+                                else if(strcmp(long_options[option_index].name, "hermesbuffersize")==0) {hpsdroptions.hermesbuffersize=atoi(optarg);}
+								else if(strcmp(long_options[option_index].name, "alsabuffersize")==0) {hpsdroptions.alsabuffersize=atoi(optarg);}
                         }
                         break;
 
@@ -195,10 +205,11 @@ int main(int argc, char *argv[])
                 argvvv[i]->index = i;
                 argvvv[i]->adrx = hpsdroptions.adrx[i];
                 argvvv[i]->samplerate = (unsigned int)hpsdroptions.samplerate;
+				argvvv[i]->alsabuffersize = (unsigned int)hpsdroptions.alsabuffersize;
                 argvvv[i]->SamplesPerRx = SamplesPerRx;
-                argvvv[i]->output_items = (short *) malloc (hpsdroptions.buffersize * sizeof(short) * SamplesPerRx * 2);
-                memset(argvvv[i]->output_items, 0, hpsdroptions.buffersize * sizeof(short) * SamplesPerRx * 2);
-                argvvv[i]->buffersize = hpsdroptions.buffersize;
+                argvvv[i]->output_items = (short *) malloc (hpsdroptions.hermesbuffersize * sizeof(short) * SamplesPerRx * 2);
+                memset(argvvv[i]->output_items, 0, hpsdroptions.hermesbuffersize * sizeof(short) * SamplesPerRx * 2);
+                argvvv[i]->hermesbuffersize = hpsdroptions.hermesbuffersize;
                 argvvv[i]->stopth = false;
                 argvvv[i]->RxWriteCounter=0;
                 argvvv[i]->state=1;
@@ -238,7 +249,7 @@ int main(int argc, char *argv[])
                         for(int i=1; i<=NumRx; ++i) {
                                 argvvv[i]->RxWriteCounter = RxWriteCounter;
                         }
-                        ++RxWriteCounter; if(RxWriteCounter > hpsdroptions.buffersize) RxWriteCounter=0;
+                        ++RxWriteCounter; if(RxWriteCounter > hpsdroptions.hermesbuffersize) RxWriteCounter=0;
                 }else{usleep(waittotimeperframe/10);}
         }
         Hermes->End();
