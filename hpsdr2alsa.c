@@ -32,7 +32,9 @@
 #include <sys/ioctl.h>
 #include <termios.h>
 
+#include <signal.h>
 
+int sigtermnum = 0;
 
 bool kbhit()
 {
@@ -51,7 +53,11 @@ bool kbhit()
         return byteswaiting > 0;
 }
 
-
+void term(int signum)
+{
+   printf("Caught! %i\n",signum);
+   sigtermnum=signum;
+}
 
 HermesProxy* Hermes;
 
@@ -83,6 +89,11 @@ void prexample(char *argv[]){
 
 int main(int argc, char *argv[])
 {
+	
+		struct sigaction action;
+		memset(&action, 0, sizeof(action));
+		action.sa_handler = term;
+		sigaction(SIGTERM, &action, NULL);	
 
         int c;
         int digit_optind = 0;
@@ -238,7 +249,7 @@ int main(int argc, char *argv[])
         fprintf (stderr,"Press any key to exit\n");
         fprintf (stderr,"\033[0m");
 
-        while(!kbhit()) {
+        while(!kbhit() && !sigtermnum) {
                 if( (Rx = Hermes->GetRxIQ()) != NULL) {
                         for (int index=0; index<SamplesPerRx; ++index)
                                 for (int receiver=0; receiver < NumRx; ++receiver) {
