@@ -2,7 +2,7 @@ CC = c++
 
 EXECUTABLE = hpsdr2alsa
 
-CFLAGS += -Wall -Wextra
+CFLAGS += -Wall -Wextra -march=native
 LDLIBS += -lm -lasound -pthread
 
 INSTALL=install
